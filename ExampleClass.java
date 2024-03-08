@@ -1,78 +1,104 @@
+import java.io.File;
+import java.lang.instrument.Instrumentation;
 import java.lang.reflect.Method;
+import java.security.ProtectionDomain;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.jar.JarFile;
 
 import org.junit.jupiter.api.Test;
-import net.bytebuddy.ByteBuddy;
 import net.bytebuddy.asm.Advice;
-import net.bytebuddy.description.method.MethodDescription;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.DynamicType.Builder;
 import net.bytebuddy.matcher.ElementMatchers;
-import net.bytebuddy.asm.Advice;
-import net.bytebuddy.agent.builder.*;
+import net.bytebuddy.utility.JavaModule;
+import net.bytebuddy.agent.ByteBuddyAgent;
+import net.bytebuddy.agent.builder.AgentBuilder;
 
 public class ExampleClass {
     public static void main(String[] args) {
-        inspectTestMethods(Tester.class);
-    }
+        injectAgent("lib/byte-buddy-agent-1.14.12.jar");
+        ByteBuddyAgent.install();
 
-    public static void inspectTestMethods(Class<?> testClass) {
-        Method[] methods = testClass.getDeclaredMethods();
+        new AgentBuilder.Default()
+                .type(ElementMatchers
+                        .any())
+                .transform(new AgentBuilder.Transformer() {
+                    @Override
+                    public Builder<?> transform(Builder<?> builder, TypeDescription typeDescription,
+                            ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
+                        return builder.method(ElementMatchers.isAnnotatedWith(Test.class))
+                                .intercept(Advice.to(ExampleClass.class));
+                    }
+                })
+                .installOnByteBuddyAgent();
 
-        for (Method method : methods) {
-            Test testAnnotation = method.getAnnotation(Test.class);
+        HashSet<Method> testMethods = getTestMethods(Tester.class);
 
-            if (testAnnotation != null) {
-                try {
-                    // Create an instance of the test class and invoke the test method
-                    Object testInstance = testClass.getDeclaredConstructor().newInstance();
-                    checkMethod(method);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+        for (Method method : testMethods) {
+            // System.out.println(method.toGenericString());
+            getEnteringArguments(method, Tester.class);
         }
     }
 
-    public static void checkMethod(Method method) {
-        System.out.println("Checking method: " + method.toGenericString());
-
-        new ByteBuddy()
-                .redefine(method.getDeclaringClass())
-                .visit(Advice.to(MethodEntryExitInterceptor.class).on(ElementMatchers.named(method.getName())))
-                .make()
-                .load(method.getDeclaringClass().getClassLoader(), )
-                .getLoaded();
-    };
-}
-
-public static class MethodEntryExitInterceptor {
     @Advice.OnMethodEnter
-    public static void onMethodEnter(@Advice.Origin Method method, @Advice.AllArguments Object[] args) {
-        System.out.println("Entering method: " + method.toGenericString());
-        System.out.println("Arguments: " + argsToString(args));
+    private static void enter(@Advice.AllArguments Object[] args, @Advice.Origin Method method) {
+        System.out.println("Method " + method.getName() + " called with args: " + Arrays.toString(args));
     }
 
-    @Advice.OnMethodExit
-    public static void onMethodExit(@Advice.Origin Method method, @Advice.Return Object returnValue) {
-        System.out.println("Exiting method: " + method.toGenericString());
-        System.out.println("Return value: " + returnValue);
+    @Advice.OnMethodExit(onThrowable = Throwable.class)
+    private static void exit(@Advice.Origin Method method, @Advice.Thrown Throwable throwable) {
+        if (throwable != null) {
+            System.out.println("Method " + method.getName() + " threw an exception: " + throwable.getMessage());
+        } else {
+            System.out.println("Exiting " + method.getName());
+        }
     }
 
-    private static String argsToString(Object[] args) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        for (int i = 0; i < args.length; i++) {
-            sb.append(args[i]);
-            if (i < args.length - 1) {
-                sb.append(", ");
+    private static HashSet<Method> getTestMethods(Class<?> testClass) {
+        HashSet<Method> list = new HashSet<>();
+        for (Method method : testClass.getDeclaredMethods()) {
+            Test testAnnotation = method.getAnnotation(Test.class);
+            list.add(method);
+            if (testAnnotation != null) {
+                list.add(method);
             }
         }
-        sb.append("]");
-        return sb.toString();
+        return list;
     }
 
+    private static void injectAgent(String path) {
+        try {
+            // Check if the agent jar file exists
+            File agentJar = new File(path);
+            if (!agentJar.exists()) {
+                throw new IllegalArgumentException("Agent jar file does not exist: " + path);
+            }
+
+            // Obtain the instrumentation instance using Byte Buddy
+            Instrumentation instrumentation = ByteBuddyAgent.install();
+
+            // Add the agent jar file to the JVM's system classloader
+            instrumentation.appendToSystemClassLoaderSearch(new JarFile(agentJar));
+
+            System.out.println("Successfully injected agent: " + path);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.err.println("Failed to inject agent: " + e.getMessage());
+        }
+    }
+
+    private static void getEnteringArguments(Method method, Class<?> targetClass) {
+        try {
+            Object instance = targetClass.newInstance();
+            method.invoke(instance);
+        } catch (Exception e) {
+            // e.printStackTrace();
+        }
     }
 
     public static String returnMessage() {
-        return "99";
+        return "NOT ANSWER";
     }
 
 }
