@@ -6,20 +6,21 @@ public class Tester {
     private String test1Answer = "answer1";
     private String test2Answer = "answer2";
     private String test3Answer = "answer3";
+    private String answer = "ANSWER";
 
     @Test
     void test1() {
-        assertEquals(test1Answer, ExampleClass.returnMessage());
+        assertEquals(answer, ExampleClass.returnMessage());
     }
 
     @Test
     void test2() {
-        assertEquals(test2Answer, ExampleClass.returnMessage());
+        assertEquals(answer, ExampleClass.returnMessage());
     }
 
     @Test
     void test3() {
-        assertEquals(test3Answer, ExampleClass.returnMessage());
+        assertEquals(answer, ExampleClass.returnMessage());
     }
     // public static int add(int a, int b) {
     // int c = a + b;

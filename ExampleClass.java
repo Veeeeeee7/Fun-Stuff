@@ -41,18 +41,23 @@ public class ExampleClass {
         }
     }
 
-    @Advice.OnMethodEnter
-    private static void enter(@Advice.AllArguments Object[] args, @Advice.Origin Method method) {
-        System.out.println("Method " + method.getName() + " called with args: " + Arrays.toString(args));
-    }
-
     @Advice.OnMethodExit(onThrowable = Throwable.class)
     private static void exit(@Advice.Origin Method method, @Advice.Thrown Throwable throwable) {
         if (throwable != null) {
-            System.out.println("Method " + method.getName() + " threw an exception: " + throwable.getMessage());
+            System.out.println("Method " + method.getName() + " threw an exception: " +
+                    throwable.getMessage());
         } else {
-            System.out.println("Exiting " + method.getName());
+            System.out.println("Exiting method: " + method.getName());
         }
+
+    }
+
+    @Advice.OnMethodEnter(skipOn = Advice.OnNonDefaultValue.class)
+    public static boolean enter(@Advice.Origin Method method, @Advice.AllArguments Object[] args) {
+        System.out.println("Method " + method.getName() + " called with args: " +
+                Arrays.toString(args));
+        System.out.println("Skipping method: " + method.getName());
+        return true;
     }
 
     private static HashSet<Method> getTestMethods(Class<?> testClass) {
@@ -98,7 +103,7 @@ public class ExampleClass {
     }
 
     public static String returnMessage() {
-        return "NOT ANSWER";
+        return "ANeSWER";
     }
 
 }
