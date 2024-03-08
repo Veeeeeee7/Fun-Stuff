@@ -41,8 +41,26 @@ public class ExampleClass {
         }
     }
 
+    public ExampleClass() {
+        injectAgent("lib/byte-buddy-agent-1.14.12.jar");
+        ByteBuddyAgent.install();
+
+        new AgentBuilder.Default()
+                .type(ElementMatchers
+                        .any())
+                .transform(new AgentBuilder.Transformer() {
+                    @Override
+                    public Builder<?> transform(Builder<?> builder, TypeDescription typeDescription,
+                            ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
+                        return builder.method(ElementMatchers.isAnnotatedWith(Test.class))
+                                .intercept(Advice.to(ExampleClass.class));
+                    }
+                })
+                .installOnByteBuddyAgent();
+    }
+
     @Advice.OnMethodExit(onThrowable = Throwable.class)
-    private static void exit(@Advice.Origin Method method, @Advice.Thrown Throwable throwable) {
+    public static void exit(@Advice.Origin Method method, @Advice.Thrown Throwable throwable) {
         if (throwable != null) {
             System.out.println("Method " + method.getName() + " threw an exception: " +
                     throwable.getMessage());
@@ -60,7 +78,7 @@ public class ExampleClass {
         return true;
     }
 
-    private static HashSet<Method> getTestMethods(Class<?> testClass) {
+    public static HashSet<Method> getTestMethods(Class<?> testClass) {
         HashSet<Method> list = new HashSet<>();
         for (Method method : testClass.getDeclaredMethods()) {
             Test testAnnotation = method.getAnnotation(Test.class);
@@ -72,7 +90,7 @@ public class ExampleClass {
         return list;
     }
 
-    private static void injectAgent(String path) {
+    public static void injectAgent(String path) {
         try {
             // Check if the agent jar file exists
             File agentJar = new File(path);
@@ -93,7 +111,7 @@ public class ExampleClass {
         }
     }
 
-    private static void getEnteringArguments(Method method, Class<?> targetClass) {
+    public static void getEnteringArguments(Method method, Class<?> targetClass) {
         try {
             Object instance = targetClass.newInstance();
             method.invoke(instance);

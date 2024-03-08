@@ -1,5 +1,6 @@
 import static org.junit.Assert.assertEquals;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 public class Tester {
@@ -10,16 +11,22 @@ public class Tester {
 
     @Test
     void test1() {
+        ExampleClass e = new ExampleClass();
+
         assertEquals(answer, ExampleClass.returnMessage());
     }
 
     @Test
     void test2() {
+        ExampleClass e = new ExampleClass();
+
         assertEquals(answer, ExampleClass.returnMessage());
     }
 
     @Test
     void test3() {
+        ExampleClass e = new ExampleClass();
+
         assertEquals(answer, ExampleClass.returnMessage());
     }
     // public static int add(int a, int b) {
