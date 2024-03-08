@@ -17,22 +17,7 @@ import net.bytebuddy.agent.builder.AgentBuilder;
 
 public class ExampleClass {
     public static void main(String[] args) {
-        injectAgent("lib/byte-buddy-agent-1.14.12.jar");
-        ByteBuddyAgent.install();
-
-        new AgentBuilder.Default()
-                .type(ElementMatchers
-                        .any())
-                .transform(new AgentBuilder.Transformer() {
-                    @Override
-                    public Builder<?> transform(Builder<?> builder, TypeDescription typeDescription,
-                            ClassLoader classLoader, JavaModule module, ProtectionDomain protectionDomain) {
-                        return builder.method(ElementMatchers.isAnnotatedWith(Test.class))
-                                .intercept(Advice.to(ExampleClass.class));
-                    }
-                })
-                .installOnByteBuddyAgent();
-
+        ExampleClass e = new ExampleClass();
         HashSet<Method> testMethods = getTestMethods(Tester.class);
 
         for (Method method : testMethods) {
